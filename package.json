@@ -1,6 +1,6 @@
 {
   "name": "storybook-live-code",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "MUI-inspired live code blocks for Storybook docs, with compact snippets, expanded source, and a CodeMirror editor.",
   "type": "module",
   "main": "./dist/storybook-live-code.js",

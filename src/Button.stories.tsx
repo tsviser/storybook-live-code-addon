@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { LiveCodeBlock } from "./LiveCodeBlock";
+import { LiveCodeDocsBlock } from "./LiveCodeDocsBlock";
 import { Button } from "./Button";
 import { Stack } from "./Stack";
 
@@ -89,5 +90,37 @@ export const LightTheme: Story = {
       theme="light"
       title="Light theme live code"
     />
+  )
+};
+
+export const IntegratedDocsPreview: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Docs mode renders a live-code block below a Storybook docs preview and can replace the default preview actions."
+      }
+    }
+  },
+  render: () => (
+    <>
+      <div className="sbdocs-preview">
+        <div className="sbdocs-preview-actions">Storybook preview actions</div>
+        <div className="liveCode__preview">
+          <div className="liveCode__previewInner">
+            <Button color="primary" variant="contained">
+              Save changes
+            </Button>
+          </div>
+        </div>
+      </div>
+      <LiveCodeDocsBlock
+        collapsedCode={minimalSnippet}
+        code={minimalCode}
+        mode="minimal"
+        scope={scope}
+        title="Integrated docs live code"
+      />
+    </>
   )
 };

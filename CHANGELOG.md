@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- Added `LiveCodeDocsBlock` for integrated Storybook Docs examples.
+- Added docs-mode CSS to hide default Storybook preview actions when live code replaces them.
+- Added sandbox story and tests for the integrated docs mode.
+
 ## 0.2.3
 
 - Reduced icon-button padding so toolbar glyphs fill the action controls more clearly.

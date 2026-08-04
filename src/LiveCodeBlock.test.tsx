@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { Button } from "./Button";
 import { LiveCodeBlock } from "./LiveCodeBlock";
+import { LiveCodeDocsBlock } from "./LiveCodeDocsBlock";
 import { Stack } from "./Stack";
 import "./styles.css";
 
@@ -84,5 +85,50 @@ describe("LiveCodeBlock", () => {
     });
 
     expect(screen.getByRole("button", { name: "Expand code" })).toBeTruthy();
+  });
+});
+
+describe("LiveCodeDocsBlock", () => {
+  it("marks the previous Storybook docs preview when replacing preview actions", async () => {
+    const { container } = render(
+      <>
+        <div className="sbdocs-preview">
+          <div className="sbdocs-preview-actions">Actions</div>
+        </div>
+        <LiveCodeDocsBlock
+          collapsedCode={snippet}
+          code={source}
+          mode="minimal"
+          scope={{ Button, Stack }}
+          title="Docs live code"
+        />
+      </>
+    );
+
+    expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(container.querySelector(".sbdocs-preview")?.classList).toContain(
+      "liveCodeDocsPreview"
+    );
+  });
+
+  it("can render docs live code without replacing preview actions", async () => {
+    const { container } = render(
+      <>
+        <div className="sbdocs-preview" />
+        <LiveCodeDocsBlock
+          collapsedCode={snippet}
+          code={source}
+          mode="minimal"
+          replacePreviewActions={false}
+          scope={{ Button, Stack }}
+          title="Docs live code"
+        />
+      </>
+    );
+
+    expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(container.querySelector(".sbdocs-preview")?.classList).not.toContain(
+      "liveCodeDocsPreview"
+    );
   });
 });

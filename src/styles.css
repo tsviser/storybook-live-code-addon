@@ -111,6 +111,20 @@ body {
   background: var(--live-code-surface);
 }
 
+.liveCodeDocs {
+  margin-block: -1px 28px;
+}
+
+.sbdocs-preview.liveCodeDocsPreview .sbdocs-preview-actions,
+.sbdocs-preview.liveCodeDocsPreview [class*="sbdocs-preview-actions"] {
+  display: none;
+}
+
+.liveCodeDocs .liveCode {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
 .liveCode[data-theme="light"] {
   --live-code-surface: #ffffff;
   --live-code-border: #d8dee8;

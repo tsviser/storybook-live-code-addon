@@ -44,6 +44,8 @@ http://localhost:6016/?path=/story/safe-sandbox-button-live-code--composition
 
 ## Usage Shape
 
+### Standalone Story
+
 ```tsx
 import { LiveCodeBlock } from "storybook-live-code";
 import "storybook-live-code/styles.css";
@@ -81,6 +83,35 @@ export function DocsExample() {
 `theme` can be `"dark"`, `"light"`, or `"system"`. The default is `"dark"` to match the MUI-style docs code surface.
 
 `scope` provides the React components, helpers, and values that edited examples may use. Expanded examples can include `import` lines and an `export default function Example()` wrapper; the renderer strips imports and renders the default component.
+
+### Integrated Docs Block
+
+Use `LiveCodeDocsBlock` after a Storybook Docs preview when you want live code attached to an existing docs example:
+
+```tsx
+import { Canvas } from "@storybook/blocks";
+import { LiveCodeDocsBlock } from "storybook-live-code";
+import "storybook-live-code/styles.css";
+import { Button } from "./Button";
+import * as ButtonStories from "./Button.stories";
+
+export function ButtonDocs() {
+  return (
+    <>
+      <Canvas of={ButtonStories.Playground} />
+      <LiveCodeDocsBlock
+        collapsedCode={snippet}
+        code={source}
+        mode="minimal"
+        scope={{ Button }}
+        title="Button live code"
+      />
+    </>
+  );
+}
+```
+
+By default, `LiveCodeDocsBlock` marks the previous `.sbdocs-preview` with `liveCodeDocsPreview`, allowing the package CSS to hide Storybook's default preview actions for that preview. Pass `replacePreviewActions={false}` to keep the default preview actions visible.
 
 ## VS Code Links
 

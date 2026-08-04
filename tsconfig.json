@@ -19,6 +19,7 @@
   "include": [
     "src/index.ts",
     "src/LiveCodeBlock.tsx",
+    "src/LiveCodeDocsBlock.tsx",
     "src/Button.tsx",
     "src/Stack.tsx",
     "src/**/*.d.ts"
