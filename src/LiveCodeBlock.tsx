@@ -6,13 +6,14 @@ import {
   useState
 } from "react";
 import { javascript } from "@codemirror/lang-javascript";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView, keymap } from "@codemirror/view";
 import { Button } from "./Button";
 import { Stack } from "./Stack";
 
 export type LiveCodeMode = "minimal" | "composition";
+export type LiveCodeTheme = "dark" | "light" | "system";
 type PreviewButton = {
   color: "primary" | "success" | "danger";
   label: string;
@@ -25,6 +26,7 @@ export type LiveCodeBlockProps = {
   code: string;
   mode: LiveCodeMode;
   sourcePath?: string;
+  theme?: LiveCodeTheme;
   title: string;
 };
 
@@ -108,18 +110,65 @@ function getEditorHeight({
   return Math.max(minHeight, Math.min(contentHeight, maxHeight));
 }
 
+const lightEditorTheme = EditorView.theme(
+  {
+    "&": {
+      backgroundColor: "#ffffff",
+      color: "#24292f"
+    },
+    ".cm-activeLine": {
+      backgroundColor: "#f6f8fa"
+    },
+    ".cm-cursor": {
+      borderLeftColor: "#24292f"
+    },
+    ".cm-gutters": {
+      backgroundColor: "#ffffff",
+      borderRightColor: "#d0d7de",
+      color: "#57606a"
+    },
+    ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
+      backgroundColor: "#b6d7ff"
+    }
+  },
+  { dark: false }
+);
+
+function useResolvedTheme(theme: LiveCodeTheme) {
+  const [systemTheme, setSystemTheme] = useState<Exclude<LiveCodeTheme, "system">>("dark");
+
+  useEffect(() => {
+    if (theme !== "system") {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-color-scheme: light)");
+    const updateTheme = () => setSystemTheme(media.matches ? "light" : "dark");
+
+    updateTheme();
+    media.addEventListener("change", updateTheme);
+
+    return () => media.removeEventListener("change", updateTheme);
+  }, [theme]);
+
+  return theme === "system" ? systemTheme : theme;
+}
+
 function CodeMirrorEditor({
+  resolvedTheme,
   title,
   value,
   onChange
 }: {
   onChange: (value: string) => void;
+  resolvedTheme: Exclude<LiveCodeTheme, "system">;
   title: string;
   value: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
+  const themeCompartmentRef = useRef(new Compartment());
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -137,7 +186,9 @@ function CodeMirrorEditor({
         extensions: [
           keymap.of([]),
           javascript({ jsx: true, typescript: true }),
-          oneDark,
+          themeCompartmentRef.current.of(
+            resolvedTheme === "dark" ? oneDark : lightEditorTheme
+          ),
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -155,6 +206,20 @@ function CodeMirrorEditor({
       editorRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+
+    if (!editor) {
+      return;
+    }
+
+    editor.dispatch({
+      effects: themeCompartmentRef.current.reconfigure(
+        resolvedTheme === "dark" ? oneDark : lightEditorTheme
+      )
+    });
+  }, [resolvedTheme]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -268,6 +333,7 @@ export function LiveCodeBlock({
   code,
   mode,
   sourcePath,
+  theme = "dark",
   title
 }: LiveCodeBlockProps) {
   const [collapsedValue, setCollapsedValue] = useState(collapsedCode);
@@ -277,6 +343,7 @@ export function LiveCodeBlock({
   const value = isExpanded ? expandedValue : collapsedValue;
   const setValue = isExpanded ? setExpandedValue : setCollapsedValue;
   const preview = usePreviewState(value);
+  const resolvedTheme = useResolvedTheme(theme);
   const vscodeHref = sourcePath ? `vscode://file${sourcePath}` : undefined;
   const editorHeight = getEditorHeight({ isExpanded, isMaximized, mode, value });
   const editorStyle = editorHeight
@@ -289,6 +356,7 @@ export function LiveCodeBlock({
       className="liveCode"
       data-maximized={isMaximized ? "true" : "false"}
       data-mode={mode}
+      data-theme={resolvedTheme}
     >
       <div className="liveCode__preview">
         <div className="liveCode__previewInner">
@@ -378,6 +446,7 @@ export function LiveCodeBlock({
         style={editorStyle}
       >
         <CodeMirrorEditor
+          resolvedTheme={resolvedTheme}
           title={`${title} editable code`}
           value={value}
           onChange={setValue}

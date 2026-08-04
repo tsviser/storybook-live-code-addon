@@ -9,6 +9,7 @@ This prototype focuses on a clean docs authoring experience:
 - full screen gives a larger workspace without changing code mode
 - editor height fits content until a max height, then scrolls internally
 - CodeMirror powers editing, selection, keyboard behavior, and syntax color
+- dark, light, and system themes keep the editor readable in different docs surfaces
 - utility toolbar actions use compact icon buttons with accessible labels
 
 ## Demo
@@ -52,11 +53,14 @@ export function DocsExample() {
       code={source}
       mode="minimal"
       sourcePath="/absolute/path/to/Button.stories.tsx:5"
+      theme="dark"
       title="Basic button"
     />
   );
 }
 ```
+
+`theme` can be `"dark"`, `"light"`, or `"system"`. The default is `"dark"` to match the MUI-style docs code surface.
 
 ## Roadmap
 

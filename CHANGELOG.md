@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added `theme="dark" | "light" | "system"` for live code blocks.
+- Added a light theme Storybook example for manual review.
+
 ## 0.1.0
 
 - Added a safe Storybook sandbox with mock Button and Stack components.

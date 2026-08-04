@@ -89,10 +89,45 @@ body {
 
 .liveCode {
   --editor-height: 160px;
+  --live-code-surface: #0d1117;
+  --live-code-border: #253140;
+  --live-code-control-border: #263442;
+  --live-code-preview-border: #1d2733;
+  --live-code-preview-bg:
+    radial-gradient(circle at 20% 20%, rgb(25 118 210 / 12%), transparent 24%),
+    linear-gradient(180deg, #111820, #0d1117);
+  --live-code-toolbar-bg: #0d1117;
+  --live-code-toolbar-border: #1d2733;
+  --live-code-toolbar-color: #c9d4e1;
+  --live-code-accent: #65adff;
+  --live-code-muted: #b8c4d2;
+  --live-code-tooltip-bg: #111827;
+  --live-code-tooltip-color: #e5edf7;
+  --live-code-editor-bg: #1e1e1e;
+  --live-code-editor-border: #0b559f;
   overflow: hidden;
-  border: 1px solid #d8dee8;
+  border: 1px solid var(--live-code-border);
   border-radius: 4px;
-  background: #fff;
+  background: var(--live-code-surface);
+}
+
+.liveCode[data-theme="light"] {
+  --live-code-surface: #ffffff;
+  --live-code-border: #d8dee8;
+  --live-code-control-border: #cfd8e3;
+  --live-code-preview-border: #e6ebf2;
+  --live-code-preview-bg:
+    radial-gradient(circle at 20% 20%, rgb(25 118 210 / 10%), transparent 24%),
+    linear-gradient(180deg, #ffffff, #f8fafc);
+  --live-code-toolbar-bg: #ffffff;
+  --live-code-toolbar-border: #e6ebf2;
+  --live-code-toolbar-color: #334155;
+  --live-code-accent: #1976d2;
+  --live-code-muted: #64748b;
+  --live-code-tooltip-bg: #111827;
+  --live-code-tooltip-color: #e5edf7;
+  --live-code-editor-bg: #ffffff;
+  --live-code-editor-border: #1976d2;
 }
 
 .liveCode[data-maximized="true"] {
@@ -108,10 +143,8 @@ body {
   display: grid;
   min-height: 170px;
   place-items: center;
-  border-bottom: 1px solid #e6ebf2;
-  background:
-    radial-gradient(circle at 20% 20%, rgb(25 118 210 / 10%), transparent 24%),
-    linear-gradient(180deg, #ffffff, #f8fafc);
+  border-bottom: 1px solid var(--live-code-preview-border);
+  background: var(--live-code-preview-bg);
 }
 
 .liveCode__previewInner {
@@ -129,9 +162,9 @@ body {
   gap: 10px;
   min-height: 58px;
   padding: 10px 14px;
-  border-bottom: 1px solid #1d2733;
-  background: #0d1117;
-  color: #c9d4e1;
+  border-bottom: 1px solid var(--live-code-toolbar-border);
+  background: var(--live-code-toolbar-bg);
+  color: var(--live-code-toolbar-color);
 }
 
 .liveCode__toolbar button,
@@ -143,10 +176,10 @@ body {
   gap: 8px;
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid #263442;
+  border: 1px solid var(--live-code-control-border);
   border-radius: 999px;
   background: transparent;
-  color: #65adff;
+  color: var(--live-code-accent);
   font: inherit;
   font-weight: 700;
   text-decoration: none;
@@ -154,7 +187,7 @@ body {
 
 .liveCode__toolbar button:hover,
 .liveCode__toolbar a:hover {
-  border-color: #1976d2;
+  border-color: var(--live-code-accent);
   background: rgb(25 118 210 / 14%);
 }
 
@@ -168,12 +201,12 @@ body {
   width: 36px;
   min-width: 36px;
   padding: 0;
-  color: #b8c4d2;
+  color: var(--live-code-muted);
 }
 
 .liveCode__iconButton:hover,
 .liveCode__iconButton:focus-visible {
-  color: #65adff;
+  color: var(--live-code-accent);
 }
 
 .liveCode__icon {
@@ -190,10 +223,10 @@ body {
   width: max-content;
   max-width: 180px;
   padding: 6px 8px;
-  border: 1px solid #263442;
+  border: 1px solid var(--live-code-control-border);
   border-radius: 6px;
-  background: #111827;
-  color: #e5edf7;
+  background: var(--live-code-tooltip-bg);
+  color: var(--live-code-tooltip-color);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
@@ -214,7 +247,7 @@ body {
 .liveCode__tabs {
   display: inline-flex;
   overflow: hidden;
-  border: 1px solid #263442;
+  border: 1px solid var(--live-code-control-border);
   border-radius: 999px;
 }
 
@@ -226,7 +259,7 @@ body {
 
 .liveCode__tabs button[aria-selected="true"] {
   background: rgb(25 118 210 / 22%);
-  color: #65adff;
+  color: var(--live-code-accent);
 }
 
 .liveCode__spacer {
@@ -237,9 +270,9 @@ body {
   position: relative;
   height: var(--editor-height);
   overflow: hidden;
-  border: 3px solid #0b559f;
+  border: 3px solid var(--live-code-editor-border);
   border-radius: 0 0 4px 4px;
-  background: #1e1e1e;
+  background: var(--live-code-editor-bg);
 }
 
 .liveCode[data-maximized="true"] .liveCode__editorShell {
@@ -254,7 +287,7 @@ body {
 
 .liveCode__codeMirror .cm-editor {
   height: 100%;
-  background: #1e1e1e;
+  background: var(--live-code-editor-bg);
   font-family:
     "SFMono-Regular", Consolas, "Liberation Mono", Menlo, ui-monospace, monospace;
   font-size: 16px;

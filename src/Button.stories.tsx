@@ -76,3 +76,16 @@ export const Composition: Story = {
     />
   )
 };
+
+export const LightTheme: Story = {
+  render: () => (
+    <LiveCodeBlock
+      collapsedCode={minimalSnippet}
+      code={minimalCode}
+      mode="minimal"
+      sourcePath="/Users/tsvidaphna/Documents/Codex/2026-08-03/co/work/storybook-button-live-code/src/Button.stories.tsx:5"
+      theme="light"
+      title="Light theme live code"
+    />
+  )
+};
