@@ -5,6 +5,7 @@
 - Added `theme="dark" | "light" | "system"` for live code blocks.
 - Added a light theme Storybook example for manual review.
 - Added fork hygiene notes, package metadata, and public-safe Storybook examples.
+- Added library build output, package exports, peer dependencies, and npm pack validation.
 
 ## 0.1.0
 

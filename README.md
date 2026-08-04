@@ -45,6 +45,7 @@ http://localhost:6016/?path=/story/safe-sandbox-button-live-code--composition
 
 ```tsx
 import { LiveCodeBlock } from "storybook-live-code";
+import "storybook-live-code/styles.css";
 
 const snippet = `<Button color="primary" variant="contained">
   Save changes
@@ -99,7 +100,18 @@ This repo intentionally keeps only the current prototype surface:
 - `src/LiveCodeBlock.tsx` contains the reusable live-code component
 - `src/Button.tsx` and `src/Stack.tsx` are mock components for the safe sandbox
 - `src/Button.stories.tsx` is the manual Storybook review environment
-- generated folders such as `node_modules`, `storybook-static`, `dist`, and `coverage` are ignored
+- generated folders such as `node_modules`, `storybook-static`, `dist`, and `coverage` are ignored by git
+- `prepack` builds `dist` automatically before npm creates a tarball
+
+## Publishing Check
+
+Run this before publishing:
+
+```sh
+npm run build
+npm run build-storybook
+npm pack --dry-run
+```
 
 ## Roadmap
 

@@ -21,6 +21,10 @@ type PreviewButton = {
   variant: "contained" | "outlined" | "text";
 };
 
+const buttonColors = ["primary", "success", "danger"] as const;
+const buttonSizes = ["small", "medium", "large"] as const;
+const buttonVariants = ["contained", "outlined", "text"] as const;
+
 export type LiveCodeBlockProps = {
   collapsedCode: string;
   code: string;
@@ -42,6 +46,14 @@ function getNumericProp(code: string, prop: string) {
   return value ? Number(value) : undefined;
 }
 
+function pickLiteral<T extends readonly string[]>(
+  value: string | undefined,
+  options: T,
+  fallback: T[number]
+) {
+  return options.includes(value ?? "") ? (value as T[number]) : fallback;
+}
+
 function normalizeButton(buttonSource: string, fallbackLabel: string): PreviewButton {
   const color = getProp(buttonSource, "color") ?? "primary";
   const variant = getProp(buttonSource, "variant") ?? "contained";
@@ -49,10 +61,10 @@ function normalizeButton(buttonSource: string, fallbackLabel: string): PreviewBu
   const label = buttonSource.match(/>([^<]+)<\/Button>/)?.[1]?.trim() || fallbackLabel;
 
   return {
-    color: ["primary", "success", "danger"].includes(color) ? color : "primary",
+    color: pickLiteral(color, buttonColors, "primary"),
     label,
-    size: ["small", "medium", "large"].includes(size) ? size : "medium",
-    variant: ["contained", "outlined", "text"].includes(variant) ? variant : "contained"
+    size: pickLiteral(size, buttonSizes, "medium"),
+    variant: pickLiteral(variant, buttonVariants, "contained")
   };
 }
 
