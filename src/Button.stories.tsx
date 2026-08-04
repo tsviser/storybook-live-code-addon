@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { LiveCodeBlock } from "./LiveCodeBlock";
 import { Button } from "./Button";
+import { Stack } from "./Stack";
 
 const minimalCode = `import { Button } from "./Button";
 
@@ -52,6 +53,7 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
+const scope = { Button, Stack };
 
 export const Minimal: Story = {
   render: () => (
@@ -59,6 +61,7 @@ export const Minimal: Story = {
       collapsedCode={minimalSnippet}
       code={minimalCode}
       mode="minimal"
+      scope={scope}
       title="Minimal live code"
     />
   )
@@ -70,6 +73,7 @@ export const Composition: Story = {
       collapsedCode={compositionSnippet}
       code={compositionCode}
       mode="composition"
+      scope={scope}
       title="Composition live code"
     />
   )
@@ -81,6 +85,7 @@ export const LightTheme: Story = {
       collapsedCode={minimalSnippet}
       code={minimalCode}
       mode="minimal"
+      scope={scope}
       theme="light"
       title="Light theme live code"
     />

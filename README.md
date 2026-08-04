@@ -21,6 +21,7 @@ This prototype focuses on a clean docs authoring experience:
 - collapsed code shows the small component JSX snippet
 - expanded code shows imports and the full wrapper function
 - full screen gives a larger workspace without changing code mode
+- scoped React rendering lets edited examples update the preview
 - editor height fits content until a max height, then scrolls internally
 - CodeMirror powers editing, selection, keyboard behavior, and syntax color
 - dark, light, and system themes keep the editor readable in different docs surfaces
@@ -46,6 +47,7 @@ http://localhost:6016/?path=/story/safe-sandbox-button-live-code--composition
 ```tsx
 import { LiveCodeBlock } from "storybook-live-code";
 import "storybook-live-code/styles.css";
+import { Button } from "./Button";
 
 const snippet = `<Button color="primary" variant="contained">
   Save changes
@@ -67,6 +69,7 @@ export function DocsExample() {
       collapsedCode={snippet}
       code={source}
       mode="minimal"
+      scope={{ Button }}
       sourcePath="/absolute/path/to/Button.stories.tsx:5"
       theme="dark"
       title="Basic button"
@@ -76,6 +79,8 @@ export function DocsExample() {
 ```
 
 `theme` can be `"dark"`, `"light"`, or `"system"`. The default is `"dark"` to match the MUI-style docs code surface.
+
+`scope` provides the React components, helpers, and values that edited examples may use. Expanded examples can include `import` lines and an `export default function Example()` wrapper; the renderer strips imports and renders the default component.
 
 ## VS Code Links
 
@@ -117,7 +122,6 @@ npm pack --dry-run
 
 - Extract Storybook-specific docs helpers around `parameters.docs.page`.
 - Add a registry-driven API for component examples.
-- Replace the mock preview parser with a real scoped React renderer.
 - Add tests after the manual UX review is complete.
 
 ## Status

@@ -140,9 +140,10 @@ body {
 }
 
 .liveCode__preview {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-height: 170px;
-  place-items: center;
   border-bottom: 1px solid var(--live-code-preview-border);
   background: var(--live-code-preview-bg);
 }
@@ -154,6 +155,31 @@ body {
   justify-content: center;
   gap: 12px;
   padding: 24px;
+}
+
+.liveCode__previewInner:empty {
+  display: none;
+}
+
+.liveCode__previewError {
+  width: calc(100% - 48px);
+  max-width: 920px;
+  margin: -8px auto 24px;
+  padding: 12px 14px;
+  border: 1px solid rgb(248 113 113 / 45%);
+  border-radius: 6px;
+  background: rgb(127 29 29 / 18%);
+  color: #fecaca;
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.liveCode[data-theme="light"] .liveCode__previewError {
+  background: #fff1f2;
+  color: #9f1239;
 }
 
 .liveCode__toolbar {

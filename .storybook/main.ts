@@ -9,7 +9,14 @@ const config: StorybookConfig = {
   },
   docs: {
     autodocs: "tag"
-  }
+  },
+  viteFinal: (config) => ({
+    ...config,
+    resolve: {
+      ...config.resolve,
+      dedupe: [...(config.resolve?.dedupe ?? []), "react", "react-dom"]
+    }
+  })
 };
 
 export default config;

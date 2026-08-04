@@ -1,4 +1,5 @@
 import {
+  Fragment,
   type CSSProperties,
   useEffect,
   useMemo,
@@ -9,95 +10,23 @@ import { javascript } from "@codemirror/lang-javascript";
 import { Compartment, EditorState } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView, keymap } from "@codemirror/view";
-import { Button } from "./Button";
-import { Stack } from "./Stack";
+import { LiveProvider, LiveError, LivePreview } from "react-live";
 
 export type LiveCodeMode = "minimal" | "composition";
 export type LiveCodeTheme = "dark" | "light" | "system";
-type PreviewButton = {
-  color: "primary" | "success" | "danger";
-  label: string;
-  size: "small" | "medium" | "large";
-  variant: "contained" | "outlined" | "text";
-};
-
-const buttonColors = ["primary", "success", "danger"] as const;
-const buttonSizes = ["small", "medium", "large"] as const;
-const buttonVariants = ["contained", "outlined", "text"] as const;
+export type LiveCodeScope = Record<string, unknown>;
 
 export type LiveCodeBlockProps = {
   collapsedCode: string;
   code: string;
   mode: LiveCodeMode;
+  scope?: LiveCodeScope;
   sourcePath?: string;
   theme?: LiveCodeTheme;
   title: string;
 };
 
 type IconName = "chat" | "copy" | "fullscreen" | "more" | "reset" | "restore" | "vscode";
-
-function getProp(source: string, prop: string) {
-  return source.match(new RegExp(`${prop}=["']([^"']+)["']`))?.[1];
-}
-
-function getNumericProp(code: string, prop: string) {
-  const value = code.match(new RegExp(`${prop}=\\{(\\d+)\\}`))?.[1];
-
-  return value ? Number(value) : undefined;
-}
-
-function pickLiteral<T extends readonly string[]>(
-  value: string | undefined,
-  options: T,
-  fallback: T[number]
-) {
-  return options.includes(value ?? "") ? (value as T[number]) : fallback;
-}
-
-function normalizeButton(buttonSource: string, fallbackLabel: string): PreviewButton {
-  const color = getProp(buttonSource, "color") ?? "primary";
-  const variant = getProp(buttonSource, "variant") ?? "contained";
-  const size = getProp(buttonSource, "size") ?? "medium";
-  const label = buttonSource.match(/>([^<]+)<\/Button>/)?.[1]?.trim() || fallbackLabel;
-
-  return {
-    color: pickLiteral(color, buttonColors, "primary"),
-    label,
-    size: pickLiteral(size, buttonSizes, "medium"),
-    variant: pickLiteral(variant, buttonVariants, "contained")
-  };
-}
-
-function getButtons(code: string): PreviewButton[] {
-  const buttons = [...code.matchAll(/<Button\b[^>]*>[^<]*<\/Button>/g)].map(
-    (match, index) => normalizeButton(match[0], `Button ${index + 1}`)
-  );
-
-  return buttons.length
-    ? buttons
-    : [
-        {
-          color: "primary",
-          label: "Save changes",
-          size: "medium",
-          variant: "contained"
-        }
-      ];
-}
-
-function usePreviewState(code: string) {
-  return useMemo(() => {
-    const direction = getProp(code, "direction") ?? "row";
-    const spacing = getNumericProp(code, "spacing") ?? 2;
-    const buttons = getButtons(code);
-
-    return {
-      buttons,
-      direction: direction === "column" ? "column" : "row",
-      spacing
-    } as const;
-  }, [code]);
-}
 
 function getEditorHeight({
   isExpanded,
@@ -120,6 +49,31 @@ function getEditorHeight({
   const maxHeight = isExpanded ? (mode === "composition" ? 560 : 440) : 220;
 
   return Math.max(minHeight, Math.min(contentHeight, maxHeight));
+}
+
+function stripImports(source: string) {
+  return source
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("import "))
+    .join("\n")
+    .trim();
+}
+
+function toRenderableCode(source: string, mode: LiveCodeMode) {
+  const codeWithoutImports = stripImports(source);
+  const exportMatch = codeWithoutImports.match(
+    /export\s+default\s+function\s+([A-Za-z_$][\w$]*)/
+  );
+
+  if (exportMatch) {
+    return codeWithoutImports.replace("export default ", "") + `\n\nrender(<${exportMatch[1]} />);`;
+  }
+
+  if (mode === "minimal") {
+    return `render(<>\n${codeWithoutImports}\n</>);`;
+  }
+
+  return `render(${codeWithoutImports});`;
 }
 
 const lightEditorTheme = EditorView.theme(
@@ -340,10 +294,36 @@ function TooltipLabel({ children }: { children: string }) {
   return <span className="liveCode__tooltip">{children}</span>;
 }
 
+function LiveCodePreview({
+  mode,
+  scope,
+  value
+}: {
+  mode: LiveCodeMode;
+  scope: LiveCodeScope;
+  value: string;
+}) {
+  const renderableCode = useMemo(() => toRenderableCode(value, mode), [mode, value]);
+
+  return (
+    <LiveProvider
+      code={renderableCode}
+      noInline
+      scope={{ Fragment, ...scope }}
+    >
+      <div className="liveCode__previewInner">
+        <LivePreview />
+      </div>
+      <LiveError className="liveCode__previewError" />
+    </LiveProvider>
+  );
+}
+
 export function LiveCodeBlock({
   collapsedCode,
   code,
   mode,
+  scope = {},
   sourcePath,
   theme = "dark",
   title
@@ -354,7 +334,6 @@ export function LiveCodeBlock({
   const [isMaximized, setMaximized] = useState(false);
   const value = isExpanded ? expandedValue : collapsedValue;
   const setValue = isExpanded ? setExpandedValue : setCollapsedValue;
-  const preview = usePreviewState(value);
   const resolvedTheme = useResolvedTheme(theme);
   const vscodeHref = sourcePath ? `vscode://file${sourcePath}` : undefined;
   const editorHeight = getEditorHeight({ isExpanded, isMaximized, mode, value });
@@ -371,20 +350,7 @@ export function LiveCodeBlock({
       data-theme={resolvedTheme}
     >
       <div className="liveCode__preview">
-        <div className="liveCode__previewInner">
-          <Stack direction={preview.direction} spacing={preview.spacing}>
-            {preview.buttons.map((button, index) => (
-              <Button
-                color={button.color}
-                key={`${button.label}-${index}`}
-                size={button.size}
-                variant={button.variant}
-              >
-                {button.label}
-              </Button>
-            ))}
-          </Stack>
-        </div>
+        <LiveCodePreview mode={mode} scope={scope} value={value} />
       </div>
 
       <div className="liveCode__toolbar">

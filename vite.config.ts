@@ -11,7 +11,7 @@ export default defineConfig({
       name: "StorybookLiveCode"
     },
     rollupOptions: {
-      external: [/^@codemirror\//, "react", "react-dom", "react/jsx-runtime"]
+      external: [/^@codemirror\//, "react", "react-dom", "react/jsx-runtime", "react-live"]
     }
   }
 });
