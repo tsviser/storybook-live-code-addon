@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- Enlarged live-code toolbar glyphs and touch targets for clearer icon actions.
+
 ## 0.2.1
 
 - Increased live-code toolbar icon button and SVG sizes for better readability.

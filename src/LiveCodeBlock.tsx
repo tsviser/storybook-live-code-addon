@@ -219,7 +219,7 @@ function Icon({ name }: { name: IconName }) {
     stroke: "currentColor",
     strokeLinecap: "round",
     strokeLinejoin: "round",
-    strokeWidth: 2.25,
+    strokeWidth: 2.5,
     viewBox: "0 0 24 24"
   } as const;
 
