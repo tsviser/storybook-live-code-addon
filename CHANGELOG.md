@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - Added Vitest coverage for scoped rendering, expand mode, themes, and render errors.
 - Added scoped React live rendering through `scope`, replacing the mock-only preview parser.
