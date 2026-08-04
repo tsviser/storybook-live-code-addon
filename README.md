@@ -6,15 +6,15 @@ MUI-inspired live code blocks for Storybook Docs.
 
 This repository is a fork-derived prototype for exploring a cleaner Storybook live-code experience.
 
-Before publishing this repo publicly, add the original upstream project URL here and keep any upstream license or copyright notices required by that project:
+This fork is derived from `JeremyRH/storybook-addon-code-editor`, an MIT-licensed Storybook addon for live editing stories.
 
 ```txt
-Original project: TODO
-Upstream license: TODO
+Original project: https://github.com/JeremyRH/storybook-addon-code-editor
+Upstream license: MIT
 Fork owner: tsvidaphna
 ```
 
-This fork is not currently presented as a drop-in replacement for the upstream package. It is focused on validating the live-code UX before extracting a production Storybook addon.
+This fork is not currently presented as a drop-in replacement for the upstream package. It is focused on validating a MUI-inspired docs live-code UX before extracting a production Storybook addon.
 
 This prototype focuses on a clean docs authoring experience:
 
