@@ -21,7 +21,8 @@
     "build": "vite build && tsc -p tsconfig.json",
     "prepack": "npm run build",
     "storybook": "storybook dev -p 6016 --no-open",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test": "vitest run"
   },
   "keywords": [
     "storybook",
@@ -61,11 +62,15 @@
   "devDependencies": {
     "@storybook/addon-docs": "^10.5.5",
     "@storybook/react-vite": "^10.5.5",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
     "@vitejs/plugin-react": "latest",
+    "jsdom": "^29.1.1",
     "react": "latest",
     "react-dom": "latest",
     "storybook": "^10.5.5",
     "typescript": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "vitest": "^4.1.10"
   }
 }

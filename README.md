@@ -114,6 +114,7 @@ Run this before publishing:
 
 ```sh
 npm run build
+npm test
 npm run build-storybook
 npm pack --dry-run
 ```

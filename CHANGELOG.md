@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added Vitest coverage for scoped rendering, expand mode, themes, and render errors.
 - Added scoped React live rendering through `scope`, replacing the mock-only preview parser.
 - Added `theme="dark" | "light" | "system"` for live code blocks.
 - Added a light theme Storybook example for manual review.
