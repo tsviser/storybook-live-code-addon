@@ -7,7 +7,7 @@ import {
   useState
 } from "react";
 import { javascript } from "@codemirror/lang-javascript";
-import { Compartment, EditorState, RangeSetBuilder } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState, RangeSetBuilder } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -268,6 +268,22 @@ function addSyntaxRange(
   }
 }
 
+function insertSoftTab(view: EditorView) {
+  const indentation = "  ";
+  const transaction = view.state.changeByRange((range) => ({
+    changes: { from: range.from, to: range.to, insert: indentation },
+    range: EditorSelection.cursor(range.from + indentation.length)
+  }));
+
+  view.dispatch({
+    ...transaction,
+    scrollIntoView: true,
+    userEvent: "input"
+  });
+
+  return true;
+}
+
 function buildJsxSnippetDecorations(view: EditorView) {
   const builder = new RangeSetBuilder<Decoration>();
   const source = view.state.doc.toString();
@@ -284,7 +300,7 @@ function buildJsxSnippetDecorations(view: EditorView) {
   addRegexRanges(ranges, source, /function\s+([A-Za-z_$][\w$]*)/g, functionMark, 2, 1);
   addRegexRanges(ranges, source, /from\s+("[^"]*"|'[^']*')/g, moduleMark, 2, 1);
 
-  const tagExpression = /<\/?\s*[A-Z][^>\n]*(?:>|$)/g;
+  const tagExpression = /<\/?\s*[A-Z][\w.]*[\s\S]*?(?:>|$)/g;
   let tagMatch: RegExpExecArray | null;
 
   while ((tagMatch = tagExpression.exec(source))) {
@@ -415,6 +431,16 @@ function CodeMirrorEditor({
           themeCompartmentRef.current.of(getEditorThemeExtensions(resolvedTheme)),
           jsxSnippetHighlighting,
           EditorView.lineWrapping,
+          EditorView.domEventHandlers({
+            keydown(event, view) {
+              if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) {
+                return false;
+              }
+
+              event.preventDefault();
+              return insertSoftTab(view);
+            }
+          }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChangeRef.current(update.state.doc.toString());

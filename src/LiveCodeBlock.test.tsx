@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "./Button";
@@ -141,6 +141,34 @@ describe("LiveCodeBlock", () => {
     expect(onCodeChange).toHaveBeenCalled();
     expect(onCodeChange.mock.lastCall?.[0]).toContain("!");
     expect(onCodeChange.mock.lastCall?.[1]).toEqual({ isExpanded: false });
+  });
+
+  it("indents with Tab while editing code", async () => {
+    const user = userEvent.setup();
+    const onCodeChange = vi.fn();
+    const { container } = renderLiveCode({ onCodeChange });
+    const editorContent = container.querySelector(".cm-content");
+
+    expect(editorContent).toBeTruthy();
+
+    await user.click(editorContent as HTMLElement);
+    fireEvent.keyDown(editorContent as HTMLElement, { key: "Tab" });
+
+    expect(onCodeChange.mock.lastCall?.[0]).toContain("  ");
+  });
+
+  it("colors pasted multiline JSX tags", () => {
+    const { container } = renderLiveCode({
+      collapsedCode: `<Button color="primary" isLoading={false} size="md" variant="outlined"
+>
+  Review
+</Button>`,
+      code: source
+    });
+
+    expect(container.querySelector(".liveCode__syntaxComponent")).toBeTruthy();
+    expect(container.querySelectorAll(".liveCode__syntaxKey").length).toBeGreaterThanOrEqual(4);
+    expect(container.querySelectorAll(".liveCode__syntaxValue").length).toBeGreaterThanOrEqual(4);
   });
 
   it("toggles between snippet and full source without changing the example", async () => {

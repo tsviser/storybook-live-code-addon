@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3
+
+- Fixed syntax coloring for pasted JSX with multiline opening tags.
+- Made `Tab` insert soft indentation inside the live-code editor instead of moving focus out of the editor.
+
 ## 0.3.2
 
 - Added `LiveCodePreview` for rendering edited code in a separate docs canvas.
