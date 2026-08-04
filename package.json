@@ -16,6 +16,20 @@
   ],
   "author": "tsvidaphna",
   "license": "MIT",
+  "homepage": "https://github.com/tsviser/storybook-live-code#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsviser/storybook-live-code.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tsviser/storybook-live-code/issues"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",
     "@codemirror/state": "^6.7.1",

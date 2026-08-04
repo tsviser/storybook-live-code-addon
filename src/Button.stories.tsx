@@ -43,7 +43,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "A mock Button sandbox for designing the live-code UX before migrating it into Crossroads UI."
+          "A mock Button sandbox for designing the live-code UX before migrating it into a production design system."
       }
     }
   }
@@ -59,7 +59,6 @@ export const Minimal: Story = {
       collapsedCode={minimalSnippet}
       code={minimalCode}
       mode="minimal"
-      sourcePath="/Users/tsvidaphna/Documents/Codex/2026-08-03/co/work/storybook-button-live-code/src/Button.stories.tsx:5"
       title="Minimal live code"
     />
   )
@@ -71,7 +70,6 @@ export const Composition: Story = {
       collapsedCode={compositionSnippet}
       code={compositionCode}
       mode="composition"
-      sourcePath="/Users/tsvidaphna/Documents/Codex/2026-08-03/co/work/storybook-button-live-code/src/Button.stories.tsx:15"
       title="Composition live code"
     />
   )
@@ -83,7 +81,6 @@ export const LightTheme: Story = {
       collapsedCode={minimalSnippet}
       code={minimalCode}
       mode="minimal"
-      sourcePath="/Users/tsvidaphna/Documents/Codex/2026-08-03/co/work/storybook-button-live-code/src/Button.stories.tsx:5"
       theme="light"
       title="Light theme live code"
     />
