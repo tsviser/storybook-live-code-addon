@@ -1,0 +1,388 @@
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
+import { javascript } from "@codemirror/lang-javascript";
+import { EditorState } from "@codemirror/state";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { EditorView, keymap } from "@codemirror/view";
+import { Button } from "./Button";
+import { Stack } from "./Stack";
+
+export type LiveCodeMode = "minimal" | "composition";
+type PreviewButton = {
+  color: "primary" | "success" | "danger";
+  label: string;
+  size: "small" | "medium" | "large";
+  variant: "contained" | "outlined" | "text";
+};
+
+export type LiveCodeBlockProps = {
+  collapsedCode: string;
+  code: string;
+  mode: LiveCodeMode;
+  sourcePath?: string;
+  title: string;
+};
+
+type IconName = "chat" | "copy" | "fullscreen" | "more" | "reset" | "restore" | "vscode";
+
+function getProp(source: string, prop: string) {
+  return source.match(new RegExp(`${prop}=["']([^"']+)["']`))?.[1];
+}
+
+function getNumericProp(code: string, prop: string) {
+  const value = code.match(new RegExp(`${prop}=\\{(\\d+)\\}`))?.[1];
+
+  return value ? Number(value) : undefined;
+}
+
+function normalizeButton(buttonSource: string, fallbackLabel: string): PreviewButton {
+  const color = getProp(buttonSource, "color") ?? "primary";
+  const variant = getProp(buttonSource, "variant") ?? "contained";
+  const size = getProp(buttonSource, "size") ?? "medium";
+  const label = buttonSource.match(/>([^<]+)<\/Button>/)?.[1]?.trim() || fallbackLabel;
+
+  return {
+    color: ["primary", "success", "danger"].includes(color) ? color : "primary",
+    label,
+    size: ["small", "medium", "large"].includes(size) ? size : "medium",
+    variant: ["contained", "outlined", "text"].includes(variant) ? variant : "contained"
+  };
+}
+
+function getButtons(code: string): PreviewButton[] {
+  const buttons = [...code.matchAll(/<Button\b[^>]*>[^<]*<\/Button>/g)].map(
+    (match, index) => normalizeButton(match[0], `Button ${index + 1}`)
+  );
+
+  return buttons.length
+    ? buttons
+    : [
+        {
+          color: "primary",
+          label: "Save changes",
+          size: "medium",
+          variant: "contained"
+        }
+      ];
+}
+
+function usePreviewState(code: string) {
+  return useMemo(() => {
+    const direction = getProp(code, "direction") ?? "row";
+    const spacing = getNumericProp(code, "spacing") ?? 2;
+    const buttons = getButtons(code);
+
+    return {
+      buttons,
+      direction: direction === "column" ? "column" : "row",
+      spacing
+    } as const;
+  }, [code]);
+}
+
+function getEditorHeight({
+  isExpanded,
+  isMaximized,
+  mode,
+  value
+}: {
+  isExpanded: boolean;
+  isMaximized: boolean;
+  mode: LiveCodeMode;
+  value: string;
+}) {
+  if (isMaximized) {
+    return undefined;
+  }
+
+  const lineCount = value.split("\n").length;
+  const contentHeight = lineCount * 26 + 52;
+  const minHeight = isExpanded ? 180 : 118;
+  const maxHeight = isExpanded ? (mode === "composition" ? 560 : 440) : 220;
+
+  return Math.max(minHeight, Math.min(contentHeight, maxHeight));
+}
+
+function CodeMirrorEditor({
+  title,
+  value,
+  onChange
+}: {
+  onChange: (value: string) => void;
+  title: string;
+  value: string;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<EditorView | null>(null);
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!containerRef.current || editorRef.current) {
+      return;
+    }
+
+    const editor = new EditorView({
+      parent: containerRef.current,
+      state: EditorState.create({
+        doc: value,
+        extensions: [
+          keymap.of([]),
+          javascript({ jsx: true, typescript: true }),
+          oneDark,
+          EditorView.lineWrapping,
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              onChangeRef.current(update.state.doc.toString());
+            }
+          })
+        ]
+      })
+    });
+
+    editorRef.current = editor;
+
+    return () => {
+      editor.destroy();
+      editorRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+
+    if (editor && editor.state.doc.toString() !== value) {
+      editor.dispatch({
+        changes: {
+          from: 0,
+          to: editor.state.doc.length,
+          insert: value
+        }
+      });
+    }
+  }, [value]);
+
+  return (
+    <div
+      aria-label={title}
+      className="liveCode__codeMirror"
+      ref={containerRef}
+      role="textbox"
+    />
+  );
+}
+
+function Icon({ name }: { name: IconName }) {
+  const shared = {
+    "aria-hidden": true,
+    className: "liveCode__icon",
+    fill: "none",
+    stroke: "currentColor",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    strokeWidth: 2,
+    viewBox: "0 0 24 24"
+  } as const;
+
+  if (name === "chat") {
+    return (
+      <svg {...shared}>
+        <path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3z" />
+        <path d="M5 14l.9 2.1L8 17l-2.1.9L5 20l-.9-2.1L2 17l2.1-.9L5 14z" />
+      </svg>
+    );
+  }
+
+  if (name === "copy") {
+    return (
+      <svg {...shared}>
+        <rect height="13" rx="2" width="10" x="8" y="7" />
+        <path d="M6 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
+      </svg>
+    );
+  }
+
+  if (name === "fullscreen") {
+    return (
+      <svg {...shared}>
+        <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+        <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+        <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+        <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+      </svg>
+    );
+  }
+
+  if (name === "restore") {
+    return (
+      <svg {...shared}>
+        <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+        <path d="M16 3v3a2 2 0 0 0 2 2h3" />
+        <path d="M8 21v-3a2 2 0 0 0-2-2H3" />
+        <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+      </svg>
+    );
+  }
+
+  if (name === "reset") {
+    return (
+      <svg {...shared}>
+        <path d="M21 12a9 9 0 1 1-2.6-6.4" />
+        <path d="M21 4v6h-6" />
+      </svg>
+    );
+  }
+
+  if (name === "vscode") {
+    return (
+      <svg {...shared}>
+        <path d="M16 4l4 2v12l-4 2-8-6-3 2-2-1.5v-5L5 8l3 2 8-6z" />
+        <path d="M16 4v16" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...shared}>
+      <circle cx="12" cy="5" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="12" cy="19" r="1" />
+    </svg>
+  );
+}
+
+function TooltipLabel({ children }: { children: string }) {
+  return <span className="liveCode__tooltip">{children}</span>;
+}
+
+export function LiveCodeBlock({
+  collapsedCode,
+  code,
+  mode,
+  sourcePath,
+  title
+}: LiveCodeBlockProps) {
+  const [collapsedValue, setCollapsedValue] = useState(collapsedCode);
+  const [expandedValue, setExpandedValue] = useState(code);
+  const [isExpanded, setExpanded] = useState(false);
+  const [isMaximized, setMaximized] = useState(false);
+  const value = isExpanded ? expandedValue : collapsedValue;
+  const setValue = isExpanded ? setExpandedValue : setCollapsedValue;
+  const preview = usePreviewState(value);
+  const vscodeHref = sourcePath ? `vscode://file${sourcePath}` : undefined;
+  const editorHeight = getEditorHeight({ isExpanded, isMaximized, mode, value });
+  const editorStyle = editorHeight
+    ? ({ "--editor-height": `${editorHeight}px` } as CSSProperties)
+    : undefined;
+
+  return (
+    <section
+      aria-label={title}
+      className="liveCode"
+      data-maximized={isMaximized ? "true" : "false"}
+      data-mode={mode}
+    >
+      <div className="liveCode__preview">
+        <div className="liveCode__previewInner">
+          <Stack direction={preview.direction} spacing={preview.spacing}>
+            {preview.buttons.map((button, index) => (
+              <Button
+                color={button.color}
+                key={`${button.label}-${index}`}
+                size={button.size}
+                variant={button.variant}
+              >
+                {button.label}
+              </Button>
+            ))}
+          </Stack>
+        </div>
+      </div>
+
+      <div className="liveCode__toolbar">
+        <button className="liveCode__chatButton" type="button">
+          <Icon name="chat" />
+          Edit in Chat
+        </button>
+        {isExpanded ? (
+          <div className="liveCode__tabs" role="tablist" aria-label="Language">
+            <button aria-selected="true" role="tab" type="button">
+              JS
+            </button>
+            <button aria-selected="false" role="tab" type="button">
+              TS
+            </button>
+          </div>
+        ) : null}
+        <span className="liveCode__spacer" />
+        <button type="button" onClick={() => setExpanded((expanded) => !expanded)}>
+          {isExpanded ? "Collapse code" : "Expand code"}
+        </button>
+        <button
+          aria-label="Copy code"
+          className="liveCode__iconButton"
+          type="button"
+          onClick={() => navigator.clipboard?.writeText(value)}
+        >
+          <Icon name="copy" />
+          <TooltipLabel>Copy code</TooltipLabel>
+        </button>
+        <button
+          aria-label={isMaximized ? "Exit full screen" : "Full screen"}
+          className="liveCode__iconButton"
+          type="button"
+          onClick={() => setMaximized((maximized) => !maximized)}
+        >
+          <Icon name={isMaximized ? "restore" : "fullscreen"} />
+          <TooltipLabel>{isMaximized ? "Exit full screen" : "Full screen"}</TooltipLabel>
+        </button>
+        <button
+          aria-label="Reset code"
+          className="liveCode__iconButton"
+          type="button"
+          onClick={() => {
+            setCollapsedValue(collapsedCode);
+            setExpandedValue(code);
+          }}
+        >
+          <Icon name="reset" />
+          <TooltipLabel>Reset code</TooltipLabel>
+        </button>
+        {vscodeHref ? (
+          <a
+            aria-label="Open source in VS Code"
+            className="liveCode__iconButton"
+            href={vscodeHref}
+          >
+            <Icon name="vscode" />
+            <TooltipLabel>Open source in VS Code</TooltipLabel>
+          </a>
+        ) : null}
+        <button aria-label="More actions" className="liveCode__iconButton" type="button">
+          <Icon name="more" />
+          <TooltipLabel>More actions</TooltipLabel>
+        </button>
+      </div>
+
+      <div
+        className="liveCode__editorShell"
+        data-expanded={isExpanded ? "true" : "false"}
+        style={editorStyle}
+      >
+        <CodeMirrorEditor
+          title={`${title} editable code`}
+          value={value}
+          onChange={setValue}
+        />
+      </div>
+    </section>
+  );
+}
