@@ -105,6 +105,12 @@ body {
   --live-code-tooltip-color: #e5edf7;
   --live-code-editor-bg: #1e1e1e;
   --live-code-editor-border: #0b559f;
+  --live-code-syntax-component: #fff176;
+  --live-code-syntax-key: #a6ff4d;
+  --live-code-syntax-value: #fff176;
+  --live-code-syntax-keyword: #66e8ff;
+  --live-code-syntax-function: #fff176;
+  --live-code-syntax-module: #a6ff4d;
   overflow: hidden;
   border: 1px solid var(--live-code-border);
   border-radius: 4px;
@@ -147,6 +153,12 @@ body {
   --live-code-tooltip-color: #e5edf7;
   --live-code-editor-bg: #ffffff;
   --live-code-editor-border: #1976d2;
+  --live-code-syntax-component: #267f99;
+  --live-code-syntax-key: #1976d2;
+  --live-code-syntax-value: #a31515;
+  --live-code-syntax-keyword: #0000ff;
+  --live-code-syntax-function: #795e26;
+  --live-code-syntax-module: #098658;
 }
 
 .liveCode[data-maximized="true"] {
@@ -204,12 +216,13 @@ body {
 .liveCode__toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 72px;
-  padding: 12px 18px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--live-code-toolbar-border);
   background: var(--live-code-toolbar-bg);
   color: var(--live-code-toolbar-color);
+  font-size: 14px;
 }
 
 .liveCode__toolbar button,
@@ -220,7 +233,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 46px;
+  min-height: 40px;
   border: 1px solid var(--live-code-control-border);
   border-radius: 999px;
   background: transparent;
@@ -250,16 +263,72 @@ body {
   color: var(--live-code-muted);
 }
 
+.liveCode__toolbar .liveCode__iconButton {
+  padding: 4px;
+}
+
 .liveCode__iconButton:hover,
 .liveCode__iconButton:focus-visible {
   color: var(--live-code-accent);
 }
 
 .liveCode__icon {
-    width: 24px;
-    height: 24px;
-    flex: none;
-    stroke-width: 1.8px;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  stroke-width: 1.8px;
+}
+
+.liveCode__menuRoot {
+  position: relative;
+  display: inline-flex;
+}
+
+.liveCode__menu {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-end: 0;
+  min-width: 150px;
+  padding: 6px;
+  border: 1px solid var(--live-code-control-border);
+  border-radius: 8px;
+  background: var(--live-code-toolbar-bg);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 32%);
+  color: var(--live-code-toolbar-color);
+}
+
+.liveCode__menuLabel {
+  padding: 6px 8px 4px;
+  color: var(--live-code-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.liveCode__toolbar .liveCode__menuItem {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--live-code-toolbar-color);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.liveCode__toolbar .liveCode__menuItem:hover,
+.liveCode__toolbar .liveCode__menuItem:focus-visible {
+  background: rgb(25 118 210 / 14%);
+  color: var(--live-code-accent);
+}
+
+.liveCode__menuCheck {
+  min-width: 52px;
+  color: var(--live-code-accent);
+  font-size: 11px;
+  text-align: end;
 }
 
 .liveCode__tooltip {
@@ -285,28 +354,14 @@ body {
     transform 120ms ease;
 }
 
+.liveCode__menuRoot .liveCode__tooltip {
+  inset-inline-end: 0;
+}
+
 .liveCode__iconButton:hover .liveCode__tooltip,
 .liveCode__iconButton:focus-visible .liveCode__tooltip {
   opacity: 1;
   transform: translateY(0);
-}
-
-.liveCode__tabs {
-  display: inline-flex;
-  overflow: hidden;
-  border: 1px solid var(--live-code-control-border);
-  border-radius: 999px;
-}
-
-.liveCode__tabs button {
-  border: 0;
-  border-radius: 0;
-  color: #9caaba;
-}
-
-.liveCode__tabs button[aria-selected="true"] {
-  background: rgb(25 118 210 / 22%);
-  color: var(--live-code-accent);
 }
 
 .liveCode__spacer {
@@ -317,7 +372,7 @@ body {
   position: relative;
   height: var(--editor-height);
   overflow: hidden;
-  border: 3px solid var(--live-code-editor-border);
+  border: 2px solid var(--live-code-editor-border);
   border-radius: 0 0 4px 4px;
   background: var(--live-code-editor-bg);
 }
@@ -351,6 +406,30 @@ body {
 
 .liveCode__codeMirror .cm-focused {
   outline: none;
+}
+
+.liveCode__syntaxComponent {
+  color: var(--live-code-syntax-component);
+}
+
+.liveCode__syntaxKey {
+  color: var(--live-code-syntax-key);
+}
+
+.liveCode__syntaxValue {
+  color: var(--live-code-syntax-value);
+}
+
+.liveCode__syntaxKeyword {
+  color: var(--live-code-syntax-keyword);
+}
+
+.liveCode__syntaxFunction {
+  color: var(--live-code-syntax-function);
+}
+
+.liveCode__syntaxModule {
+  color: var(--live-code-syntax-module);
 }
 
 @media (max-width: 720px) {

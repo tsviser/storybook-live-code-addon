@@ -7,19 +7,30 @@ import {
   useState
 } from "react";
 import { javascript } from "@codemirror/lang-javascript";
-import { Compartment, EditorState } from "@codemirror/state";
-import { oneDark } from "@codemirror/theme-one-dark";
-import { EditorView, keymap } from "@codemirror/view";
+import { Compartment, EditorState, RangeSetBuilder } from "@codemirror/state";
+import {
+  Decoration,
+  type DecorationSet,
+  EditorView,
+  keymap,
+  ViewPlugin,
+  type ViewUpdate
+} from "@codemirror/view";
 import { LiveProvider, LiveError, LivePreview } from "react-live";
 
 export type LiveCodeMode = "minimal" | "composition";
 export type LiveCodeTheme = "dark" | "light" | "system";
 export type LiveCodeScope = Record<string, unknown>;
 
+export type LiveCodeChangeContext = {
+  isExpanded: boolean;
+};
+
 export type LiveCodeBlockProps = {
   collapsedCode: string;
   code: string;
   mode: LiveCodeMode;
+  onCodeChange?: (code: string, context: LiveCodeChangeContext) => void;
   showPreview?: boolean;
   scope?: LiveCodeScope;
   sourcePath?: string;
@@ -28,6 +39,11 @@ export type LiveCodeBlockProps = {
 };
 
 type IconName = "chat" | "copy" | "fullscreen" | "more" | "reset" | "restore" | "vscode";
+const themeOptions: LiveCodeTheme[] = ["system", "dark", "light"];
+
+function getThemeLabel(themeOption: LiveCodeTheme) {
+  return themeOption[0].toUpperCase() + themeOption.slice(1);
+}
 
 function getEditorHeight({
   isExpanded,
@@ -60,6 +76,88 @@ function stripImports(source: string) {
     .trim();
 }
 
+function isFullExampleSource(source: string) {
+  return /export\s+default\s+function\s+[A-Za-z_$][\w$]*\s*\(/.test(source);
+}
+
+function getReturnSnippet(source: string) {
+  const match = source.match(/return\s*\(\n([\s\S]*?)\n\s*\);/);
+
+  return match ? unwrapFragment(match[1].replace(/^ {4}/gm, "").trim()) : stripImports(source);
+}
+
+function unwrapFragment(source: string) {
+  const trimmed = source.trim();
+  const match = trimmed.match(/^<>\n([\s\S]*)\n<\/>$/);
+
+  return match ? match[1].replace(/^ {2}/gm, "").trim() : trimmed;
+}
+
+function hasSiblingJsxRoots(source: string) {
+  const trimmed = unwrapFragment(source);
+  let depth = 0;
+  let rootCount = 0;
+  const tagExpression = /<\/?\s*([A-Z][\w.]*|>)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = tagExpression.exec(trimmed))) {
+    const tagText = match[0];
+
+    if (tagText.startsWith("</")) {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+
+    if (depth === 0) {
+      rootCount += 1;
+    }
+
+    if (!tagText.endsWith("/>")) {
+      depth += 1;
+    }
+  }
+
+  return rootCount > 1;
+}
+
+function wrapSiblingRoots(source: string) {
+  const snippet = unwrapFragment(source);
+
+  return hasSiblingJsxRoots(snippet) ? `<>${"\n"}${indentSnippet(snippet, 2)}${"\n"}</>` : snippet;
+}
+
+function indentSnippet(source: string, spaces: number) {
+  const indentation = " ".repeat(spaces);
+
+  return source
+    .trim()
+    .split("\n")
+    .map((line) => (line.trim() ? `${indentation}${line}` : ""))
+    .join("\n");
+}
+
+function toExpandedSource(currentSource: string, expandedTemplate: string) {
+  if (isFullExampleSource(currentSource)) {
+    return currentSource;
+  }
+
+  const snippet = stripImports(currentSource);
+  const returnSource = wrapSiblingRoots(snippet);
+
+  if (!isFullExampleSource(expandedTemplate)) {
+    return snippet;
+  }
+
+  return expandedTemplate.replace(
+    /return\s*\(\n[\s\S]*?\n\s*\);/,
+    `return (\n${indentSnippet(returnSource, 4)}\n  );`
+  );
+}
+
+function toCollapsedSource(currentSource: string) {
+  return isFullExampleSource(currentSource) ? getReturnSnippet(currentSource) : currentSource;
+}
+
 function toRenderableCode(source: string, mode: LiveCodeMode) {
   const codeWithoutImports = stripImports(source);
   const exportMatch = codeWithoutImports.match(
@@ -70,12 +168,32 @@ function toRenderableCode(source: string, mode: LiveCodeMode) {
     return codeWithoutImports.replace("export default ", "") + `\n\nrender(<${exportMatch[1]} />);`;
   }
 
-  if (mode === "minimal") {
-    return `render(<>\n${codeWithoutImports}\n</>);`;
-  }
-
-  return `render(${codeWithoutImports});`;
+  return `render(<>\n${codeWithoutImports}\n</>);`;
 }
+
+const darkEditorTheme = EditorView.theme(
+  {
+    "&": {
+      backgroundColor: "#1e1e1e",
+      color: "#d4d4d4"
+    },
+    ".cm-activeLine": {
+      backgroundColor: "#2a2d2e"
+    },
+    ".cm-cursor": {
+      borderLeftColor: "#d4d4d4"
+    },
+    ".cm-gutters": {
+      backgroundColor: "#1e1e1e",
+      borderRightColor: "#333333",
+      color: "#858585"
+    },
+    ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
+      backgroundColor: "#264f78"
+    }
+  },
+  { dark: true }
+);
 
 const lightEditorTheme = EditorView.theme(
   {
@@ -100,6 +218,147 @@ const lightEditorTheme = EditorView.theme(
   },
   { dark: false }
 );
+
+const componentNameMark = Decoration.mark({ class: "liveCode__syntaxComponent" });
+const propKeyMark = Decoration.mark({ class: "liveCode__syntaxKey" });
+const propValueMark = Decoration.mark({ class: "liveCode__syntaxValue" });
+const keywordMark = Decoration.mark({ class: "liveCode__syntaxKeyword" });
+const functionMark = Decoration.mark({ class: "liveCode__syntaxFunction" });
+const moduleMark = Decoration.mark({ class: "liveCode__syntaxModule" });
+
+type SyntaxRange = {
+  from: number;
+  mark: Decoration;
+  priority: number;
+  to: number;
+};
+
+function addRegexRanges(
+  ranges: SyntaxRange[],
+  source: string,
+  expression: RegExp,
+  mark: Decoration,
+  priority: number,
+  groupIndex = 0
+) {
+  let match: RegExpExecArray | null;
+
+  while ((match = expression.exec(source))) {
+    const value = match[groupIndex];
+
+    if (!value) {
+      continue;
+    }
+
+    const from = match.index + match[0].indexOf(value);
+
+    ranges.push({ from, mark, priority, to: from + value.length });
+  }
+}
+
+function addSyntaxRange(
+  ranges: SyntaxRange[],
+  from: number,
+  to: number,
+  mark: Decoration,
+  priority: number
+) {
+  if (from < to) {
+    ranges.push({ from, mark, priority, to });
+  }
+}
+
+function buildJsxSnippetDecorations(view: EditorView) {
+  const builder = new RangeSetBuilder<Decoration>();
+  const source = view.state.doc.toString();
+  const ranges: SyntaxRange[] = [];
+
+  addRegexRanges(
+    ranges,
+    source,
+    /\b(import|from|export|default|function|return|const|let|var)\b/g,
+    keywordMark,
+    1,
+    1
+  );
+  addRegexRanges(ranges, source, /function\s+([A-Za-z_$][\w$]*)/g, functionMark, 2, 1);
+  addRegexRanges(ranges, source, /from\s+("[^"]*"|'[^']*')/g, moduleMark, 2, 1);
+
+  const tagExpression = /<\/?\s*[A-Z][^>\n]*(?:>|$)/g;
+  let tagMatch: RegExpExecArray | null;
+
+  while ((tagMatch = tagExpression.exec(source))) {
+    const tagText = tagMatch[0];
+    const tagStart = tagMatch.index;
+    const componentMatch = tagText.match(/<\/?\s*([A-Z][\w.]*)/);
+
+    if (componentMatch?.index !== undefined) {
+      const componentStart = tagStart + componentMatch.index + componentMatch[0].lastIndexOf(componentMatch[1]);
+      addSyntaxRange(
+        ranges,
+        componentStart,
+        componentStart + componentMatch[1].length,
+        componentNameMark,
+        3
+      );
+    }
+
+    const propExpression = /\s([A-Za-z_$][\w$:-]*)(\s*=\s*)("[^"]*"|'[^']*'|\{[^}\n]*\})/g;
+    let propMatch: RegExpExecArray | null;
+
+    while ((propMatch = propExpression.exec(tagText))) {
+      const keyStart = tagStart + propMatch.index + propMatch[0].indexOf(propMatch[1]);
+      const valueStart = keyStart + propMatch[1].length + propMatch[2].length;
+
+      addSyntaxRange(ranges, keyStart, keyStart + propMatch[1].length, propKeyMark, 4);
+      addSyntaxRange(
+        ranges,
+        valueStart,
+        valueStart + propMatch[3].length,
+        propValueMark,
+        4
+      );
+    }
+  }
+
+  let previousTo = -1;
+
+  ranges
+    .sort((first, second) => first.from - second.from || second.priority - first.priority)
+    .forEach(({ from, mark, to }) => {
+      if (from < previousTo) {
+        return;
+      }
+
+      builder.add(from, to, mark);
+      previousTo = to;
+    });
+
+  return builder.finish();
+}
+
+const jsxSnippetHighlighting = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+
+    constructor(view: EditorView) {
+      this.decorations = buildJsxSnippetDecorations(view);
+    }
+
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = buildJsxSnippetDecorations(update.view);
+      }
+    }
+  },
+  {
+    decorations: (value) => value.decorations
+  }
+);
+
+function getEditorThemeExtensions(resolvedTheme: Exclude<LiveCodeTheme, "system">) {
+  return resolvedTheme === "dark" ? darkEditorTheme : lightEditorTheme;
+}
 
 function useResolvedTheme(theme: LiveCodeTheme) {
   const [systemTheme, setSystemTheme] = useState<Exclude<LiveCodeTheme, "system">>("dark");
@@ -153,9 +412,8 @@ function CodeMirrorEditor({
         extensions: [
           keymap.of([]),
           javascript({ jsx: true, typescript: true }),
-          themeCompartmentRef.current.of(
-            resolvedTheme === "dark" ? oneDark : lightEditorTheme
-          ),
+          themeCompartmentRef.current.of(getEditorThemeExtensions(resolvedTheme)),
+          jsxSnippetHighlighting,
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -182,9 +440,7 @@ function CodeMirrorEditor({
     }
 
     editor.dispatch({
-      effects: themeCompartmentRef.current.reconfigure(
-        resolvedTheme === "dark" ? oneDark : lightEditorTheme
-      )
+      effects: themeCompartmentRef.current.reconfigure(getEditorThemeExtensions(resolvedTheme))
     });
   }, [resolvedTheme]);
 
@@ -295,7 +551,7 @@ function TooltipLabel({ children }: { children: string }) {
   return <span className="liveCode__tooltip">{children}</span>;
 }
 
-function LiveCodePreview({
+export function LiveCodePreview({
   mode,
   scope,
   value
@@ -324,25 +580,30 @@ export function LiveCodeBlock({
   collapsedCode,
   code,
   mode,
+  onCodeChange,
   showPreview = true,
   scope = {},
   sourcePath,
   theme = "dark",
   title
 }: LiveCodeBlockProps) {
-  const [collapsedValue, setCollapsedValue] = useState(collapsedCode);
-  const [expandedValue, setExpandedValue] = useState(code);
+  const [value, setValue] = useState(collapsedCode);
   const [isExpanded, setExpanded] = useState(false);
   const [isMaximized, setMaximized] = useState(false);
-  const value = isExpanded ? expandedValue : collapsedValue;
-  const setValue = isExpanded ? setExpandedValue : setCollapsedValue;
-  const resolvedTheme = useResolvedTheme(theme);
+  const [isMoreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [themeOverride, setThemeOverride] = useState<LiveCodeTheme | null>(null);
+  const activeTheme = themeOverride ?? theme;
+  const resolvedTheme = useResolvedTheme(activeTheme);
   const vscodeHref = sourcePath ? `vscode://file${sourcePath}` : undefined;
   const editorHeight = getEditorHeight({ isExpanded, isMaximized, mode, value });
   const editorStyle = editorHeight
     ? ({ "--editor-height": `${editorHeight}px` } as CSSProperties)
     : undefined;
   const shouldShowPreview = showPreview || isMaximized;
+
+  useEffect(() => {
+    onCodeChange?.(value, { isExpanded });
+  }, [isExpanded, onCodeChange, value]);
 
   return (
     <section
@@ -364,18 +625,18 @@ export function LiveCodeBlock({
           <Icon name="chat" />
           Edit in Chat
         </button>
-        {isExpanded ? (
-          <div className="liveCode__tabs" role="tablist" aria-label="Language">
-            <button aria-selected="true" role="tab" type="button">
-              JS
-            </button>
-            <button aria-selected="false" role="tab" type="button">
-              TS
-            </button>
-          </div>
-        ) : null}
         <span className="liveCode__spacer" />
-        <button type="button" onClick={() => setExpanded((expanded) => !expanded)}>
+        <button
+          type="button"
+          onClick={() => {
+            setValue((currentValue) =>
+              isExpanded
+                ? toCollapsedSource(currentValue)
+                : toExpandedSource(currentValue, code)
+            );
+            setExpanded((expanded) => !expanded);
+          }}
+        >
           {isExpanded ? "Collapse code" : "Expand code"}
         </button>
         <button
@@ -401,8 +662,7 @@ export function LiveCodeBlock({
           className="liveCode__iconButton"
           type="button"
           onClick={() => {
-            setCollapsedValue(collapsedCode);
-            setExpandedValue(code);
+            setValue(collapsedCode);
           }}
         >
           <Icon name="reset" />
@@ -418,10 +678,42 @@ export function LiveCodeBlock({
             <TooltipLabel>Open source in VS Code</TooltipLabel>
           </a>
         ) : null}
-        <button aria-label="More actions" className="liveCode__iconButton" type="button">
-          <Icon name="more" />
-          <TooltipLabel>More actions</TooltipLabel>
-        </button>
+        <div className="liveCode__menuRoot">
+          <button
+            aria-expanded={isMoreMenuOpen}
+            aria-haspopup="menu"
+            aria-label="More actions"
+            className="liveCode__iconButton"
+            type="button"
+            onClick={() => setMoreMenuOpen((isOpen) => !isOpen)}
+          >
+            <Icon name="more" />
+            <TooltipLabel>More actions</TooltipLabel>
+          </button>
+          {isMoreMenuOpen ? (
+            <div className="liveCode__menu" role="menu" aria-label="More actions">
+              <div className="liveCode__menuLabel">Theme</div>
+              {themeOptions.map((themeOption) => (
+                <button
+                  aria-checked={activeTheme === themeOption}
+                  className="liveCode__menuItem"
+                  key={themeOption}
+                  role="menuitemradio"
+                  type="button"
+                  onClick={() => {
+                    setThemeOverride(themeOption);
+                    setMoreMenuOpen(false);
+                  }}
+                >
+                  <span>{getThemeLabel(themeOption)}</span>
+                  <span aria-hidden="true" className="liveCode__menuCheck">
+                    {activeTheme === themeOption ? "Selected" : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div

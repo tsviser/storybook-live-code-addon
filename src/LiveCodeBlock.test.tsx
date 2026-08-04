@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Button } from "./Button";
 import { LiveCodeBlock } from "./LiveCodeBlock";
 import { LiveCodeDocsBlock } from "./LiveCodeDocsBlock";
@@ -67,6 +67,19 @@ describe("LiveCodeBlock", () => {
     expect(screen.getByRole("button", { name: "Two" })).toBeTruthy();
   });
 
+  it("renders sibling JSX snippets without requiring a wrapper", async () => {
+    renderLiveCode({
+      collapsedCode: `<Button color="primary" variant="contained">One</Button>
+<Button color="success" variant="outlined">Two</Button>`,
+      code: `<Button color="primary" variant="contained">One</Button>
+<Button color="success" variant="outlined">Two</Button>`,
+      mode: "composition"
+    });
+
+    expect(await screen.findByRole("button", { name: "One" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Two" })).toBeTruthy();
+  });
+
   it("applies the requested theme", () => {
     const { container } = renderLiveCode({ theme: "light" });
 
@@ -97,6 +110,86 @@ describe("LiveCodeBlock", () => {
 
     expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
     expect(container.querySelector(".liveCode__preview")).toBeTruthy();
+  });
+
+  it("can switch theme from the more actions menu", async () => {
+    const user = userEvent.setup();
+    const { container } = renderLiveCode({ theme: "dark" });
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(screen.getByRole("menuitemradio", { name: /Light/ }));
+
+    expect(container.querySelector(".liveCode")?.getAttribute("data-theme")).toBe("light");
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(screen.getByRole("menuitemradio", { name: /Dark/ }));
+
+    expect(container.querySelector(".liveCode")?.getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("emits code changes from the editor", async () => {
+    const user = userEvent.setup();
+    const onCodeChange = vi.fn();
+    const { container } = renderLiveCode({ onCodeChange });
+    const editorContent = container.querySelector(".cm-content");
+
+    expect(editorContent).toBeTruthy();
+
+    await user.click(editorContent as HTMLElement);
+    await user.keyboard("!");
+
+    expect(onCodeChange).toHaveBeenCalled();
+    expect(onCodeChange.mock.lastCall?.[0]).toContain("!");
+    expect(onCodeChange.mock.lastCall?.[1]).toEqual({ isExpanded: false });
+  });
+
+  it("toggles between snippet and full source without changing the example", async () => {
+    const user = userEvent.setup();
+    const onCodeChange = vi.fn();
+    const { container } = renderLiveCode({ onCodeChange });
+
+    await user.click(screen.getByRole("button", { name: "Expand code" }));
+
+    expect(onCodeChange.mock.lastCall?.[0]).toContain('import { Button } from "./Button";');
+    expect(onCodeChange.mock.lastCall?.[0]).toContain('<Button color="primary" variant="contained">');
+    expect(onCodeChange.mock.lastCall?.[1]).toEqual({ isExpanded: true });
+    expect(container.querySelector(".liveCode__syntaxKeyword")).toBeTruthy();
+    expect(container.querySelector(".liveCode__syntaxFunction")).toBeTruthy();
+    expect(container.querySelector(".liveCode__syntaxModule")).toBeTruthy();
+    expect(container.querySelector(".liveCode__syntaxComponent")).toBeTruthy();
+    expect(container.querySelector(".liveCode__syntaxKey")).toBeTruthy();
+    expect(container.querySelector(".liveCode__syntaxValue")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Collapse code" }));
+
+    expect(onCodeChange.mock.lastCall?.[0]).toBe(snippet);
+    expect(onCodeChange.mock.lastCall?.[1]).toEqual({ isExpanded: false });
+  });
+
+  it("keeps duplicated snippet JSX when expanding and collapsing", async () => {
+    const user = userEvent.setup();
+    const onCodeChange = vi.fn();
+    const duplicatedSnippet = `<Button color="primary" variant="contained">One</Button>
+<Button color="success" variant="outlined">Two</Button>`;
+
+    renderLiveCode({
+      collapsedCode: duplicatedSnippet,
+      code: source,
+      mode: "composition",
+      onCodeChange
+    });
+
+    await user.click(screen.getByRole("button", { name: "Expand code" }));
+
+    expect(onCodeChange.mock.lastCall?.[0]).toContain("<>");
+    expect(onCodeChange.mock.lastCall?.[0]).toContain(
+      '<Button color="success" variant="outlined">Two</Button>'
+    );
+    expect(onCodeChange.mock.lastCall?.[0]).toContain("</>");
+
+    await user.click(screen.getByRole("button", { name: "Collapse code" }));
+
+    expect(onCodeChange.mock.lastCall?.[0]).toBe(duplicatedSnippet);
   });
 });
 

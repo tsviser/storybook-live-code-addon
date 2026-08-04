@@ -1,7 +1,8 @@
-export { LiveCodeBlock } from "./LiveCodeBlock";
+export { LiveCodeBlock, LiveCodePreview } from "./LiveCodeBlock";
 export { LiveCodeDocsBlock } from "./LiveCodeDocsBlock";
 export type {
   LiveCodeBlockProps,
+  LiveCodeChangeContext,
   LiveCodeMode,
   LiveCodeScope,
   LiveCodeTheme

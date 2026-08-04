@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.2
+
+- Added `LiveCodePreview` for rendering edited code in a separate docs canvas.
+- Added `onCodeChange` to `LiveCodeBlock` and `LiveCodeDocsBlock`.
+- Added a More actions theme menu with `System`, `Dark`, and `Light` choices.
+- Removed the JS/TS segmented control from the toolbar.
+- Made expand/collapse transform between compact JSX snippets and full source without changing the edited example.
+- Wrapped duplicated sibling JSX roots in a fragment when expanding to full source.
+- Added snippet-safe syntax coloring for JSX snippets and expanded source.
+- Exposed syntax color CSS variables for component names, prop keys, prop values, keywords, function names, and module paths.
+- Reduced toolbar height, button height, icon size, and editor border width.
+- Removed the unused `@codemirror/theme-one-dark` dependency.
+
 ## 0.3.1
 
 - Added `showPreview` to `LiveCodeBlock`.
