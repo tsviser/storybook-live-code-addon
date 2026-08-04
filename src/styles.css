@@ -115,6 +115,11 @@ body {
   margin-block: -1px 28px;
 }
 
+.sbdocs-preview.liveCodeDocsPreview {
+  margin-block-end: 0;
+  padding-block-end: 0;
+}
+
 .sbdocs-preview.liveCodeDocsPreview .sbdocs-preview-actions,
 .sbdocs-preview.liveCodeDocsPreview [class*="sbdocs-preview-actions"] {
   display: none;

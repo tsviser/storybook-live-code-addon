@@ -113,6 +113,8 @@ export function ButtonDocs() {
 
 By default, `LiveCodeDocsBlock` marks the previous `.sbdocs-preview` with `liveCodeDocsPreview`, allowing the package CSS to hide Storybook's default preview actions for that preview. Pass `replacePreviewActions={false}` to keep the default preview actions visible.
 
+Docs mode renders only the live-code toolbar and editor by default, so the Storybook canvas remains the single preview. Pass `showPreview={true}` to render a second preview inside the live-code block. Full screen always brings the live-code preview back for a complete edit workspace.
+
 ## VS Code Links
 
 `sourcePath` is optional. Pass an absolute local file path only inside your private docs environment:

@@ -86,6 +86,18 @@ describe("LiveCodeBlock", () => {
 
     expect(screen.getByRole("button", { name: "Expand code" })).toBeTruthy();
   });
+
+  it("can hide the preview until full screen is opened", async () => {
+    const user = userEvent.setup();
+    const { container } = renderLiveCode({ showPreview: false });
+
+    expect(container.querySelector(".liveCode__preview")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Full screen" }));
+
+    expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(container.querySelector(".liveCode__preview")).toBeTruthy();
+  });
 });
 
 describe("LiveCodeDocsBlock", () => {
@@ -105,7 +117,8 @@ describe("LiveCodeDocsBlock", () => {
       </>
     );
 
-    expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(await screen.findByRole("textbox", { name: "Docs live code editable code" })).toBeTruthy();
+    expect(container.querySelector(".liveCode__preview")).toBeNull();
     expect(container.querySelector(".sbdocs-preview")?.classList).toContain(
       "liveCodeDocsPreview"
     );
@@ -126,9 +139,25 @@ describe("LiveCodeDocsBlock", () => {
       </>
     );
 
-    expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(await screen.findByRole("textbox", { name: "Docs live code editable code" })).toBeTruthy();
     expect(container.querySelector(".sbdocs-preview")?.classList).not.toContain(
       "liveCodeDocsPreview"
     );
+  });
+
+  it("can opt into preview rendering in docs mode", async () => {
+    const { container } = render(
+      <LiveCodeDocsBlock
+        collapsedCode={snippet}
+        code={source}
+        mode="minimal"
+        showPreview
+        scope={{ Button, Stack }}
+        title="Docs live code"
+      />
+    );
+
+    expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(container.querySelector(".liveCode__preview")).toBeTruthy();
   });
 });

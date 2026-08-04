@@ -21,6 +21,7 @@ function findPreviousDocsPreview(element: HTMLElement) {
 
 export function LiveCodeDocsBlock({
   replacePreviewActions = true,
+  showPreview = false,
   ...liveCodeProps
 }: LiveCodeDocsBlockProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -45,7 +46,7 @@ export function LiveCodeDocsBlock({
 
   return (
     <div className="liveCodeDocs" ref={rootRef}>
-      <LiveCodeBlock {...liveCodeProps} />
+      <LiveCodeBlock showPreview={showPreview} {...liveCodeProps} />
     </div>
   );
 }

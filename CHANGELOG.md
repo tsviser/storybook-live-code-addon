@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- Added `showPreview` to `LiveCodeBlock`.
+- Made `LiveCodeDocsBlock` render toolbar and editor only by default.
+- Kept live preview available when docs live code enters full screen.
+- Removed bottom spacing from Storybook docs previews when live code replaces preview actions.
+
 ## 0.3.0
 
 - Added `LiveCodeDocsBlock` for integrated Storybook Docs examples.

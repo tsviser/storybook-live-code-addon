@@ -20,6 +20,7 @@ export type LiveCodeBlockProps = {
   collapsedCode: string;
   code: string;
   mode: LiveCodeMode;
+  showPreview?: boolean;
   scope?: LiveCodeScope;
   sourcePath?: string;
   theme?: LiveCodeTheme;
@@ -323,6 +324,7 @@ export function LiveCodeBlock({
   collapsedCode,
   code,
   mode,
+  showPreview = true,
   scope = {},
   sourcePath,
   theme = "dark",
@@ -340,6 +342,7 @@ export function LiveCodeBlock({
   const editorStyle = editorHeight
     ? ({ "--editor-height": `${editorHeight}px` } as CSSProperties)
     : undefined;
+  const shouldShowPreview = showPreview || isMaximized;
 
   return (
     <section
@@ -347,11 +350,14 @@ export function LiveCodeBlock({
       className="liveCode"
       data-maximized={isMaximized ? "true" : "false"}
       data-mode={mode}
+      data-preview={shouldShowPreview ? "true" : "false"}
       data-theme={resolvedTheme}
     >
-      <div className="liveCode__preview">
-        <LiveCodePreview mode={mode} scope={scope} value={value} />
-      </div>
+      {shouldShowPreview ? (
+        <div className="liveCode__preview">
+          <LiveCodePreview mode={mode} scope={scope} value={value} />
+        </div>
+      ) : null}
 
       <div className="liveCode__toolbar">
         <button className="liveCode__chatButton" type="button">
