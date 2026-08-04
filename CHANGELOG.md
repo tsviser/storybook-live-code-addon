@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+- Reduced icon-button padding so toolbar glyphs fill the action controls more clearly.
+
 ## 0.2.2
 
 - Enlarged live-code toolbar glyphs and touch targets for clearer icon actions.
