@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Increased live-code toolbar icon button and SVG sizes for better readability.
+
 ## 0.2.0
 
 - Added Vitest coverage for scoped rendering, expand mode, themes, and render errors.

@@ -186,8 +186,8 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 58px;
-  padding: 10px 14px;
+  min-height: 64px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--live-code-toolbar-border);
   background: var(--live-code-toolbar-bg);
   color: var(--live-code-toolbar-color);
@@ -200,7 +200,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 36px;
+  min-height: 42px;
   padding: 0 12px;
   border: 1px solid var(--live-code-control-border);
   border-radius: 999px;
@@ -224,8 +224,8 @@ body {
 }
 
 .liveCode__iconButton {
-  width: 36px;
-  min-width: 36px;
+  width: 44px;
+  min-width: 44px;
   padding: 0;
   color: var(--live-code-muted);
 }
@@ -236,8 +236,8 @@ body {
 }
 
 .liveCode__icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   flex: none;
 }
 
