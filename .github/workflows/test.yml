@@ -81,3 +81,57 @@ jobs:
 
       - name: Run release check
         run: npm run build && npm run build-storybook && npm pack --dry-run
+
+  pr_validation:
+    name: PR Validation
+    # Aggregate gate. Every Crossroads repository exposes one required status
+    # check under this exact name, so the jobs beneath it can be renamed, split
+    # or extended without touching the branch protection rule. GitHub stores a
+    # required check as plain text rather than as a reference to a job, so a
+    # rename made without updating the rule fails silently rather than loudly.
+    #
+    # `needs` names the jobs, not the matrix legs. The `test` legs report as
+    # "test (20.x)" and "test (22.x)", so requiring them individually would pin
+    # a Node version into branch protection and silently exempt any version
+    # added to the matrix later. Depending on the job aggregates every leg.
+    #
+    # `publish-check` is deliberately excluded: its own `if` restricts it to
+    # pushes to main, so on a pull request it is skipped, and a gate that
+    # required it would fail every pull request on a dependency that was never
+    # meant to run there.
+    #
+    # `!cancelled()` rather than `always()`. The concurrency group above cancels
+    # the in-progress run on every new push, so a superseded run's jobs report
+    # `cancelled` -- and an `always()` gate would turn that into a hard failure,
+    # leaving a red check on a commit nobody is waiting on while the
+    # replacement run goes green beside it. A superseded run should render no
+    # verdict. A job cancelled on its own while its run stays live is different:
+    # `cancelled()` is false there, so the gate still runs and the check below
+    # still refuses to pass a job that did not finish.
+    if: ${{ !cancelled() }}
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # No checkout step: this job reads job results, not the repository.
+      - name: Check required results
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+        run: |
+          echo "Tests: $TEST_RESULT"
+          echo "Lint:  $LINT_RESULT"
+          status=0
+          for pair in "Tests:$TEST_RESULT" "Lint:$LINT_RESULT"; do
+            name="${pair%%:*}"
+            result="${pair#*:}"
+            [ "$result" = "success" ] && continue
+            if [ "$result" = "cancelled" ]; then
+              echo "$name was cancelled while this run stayed live; a required job that did not finish cannot pass the gate." >&2
+            else
+              echo "$name did not pass ($result)." >&2
+            fi
+            status=1
+          done
+          exit "$status"
