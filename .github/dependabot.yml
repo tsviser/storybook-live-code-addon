@@ -1,0 +1,21 @@
+# Phase 02 of the fleet CI roadmap. Replaces the deleted weekly `npm update`
+# cron: exact pinned versions, one reviewable PR per ecosystem per week,
+# instead of a bulk semver-range update opened by a bot with write access.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+    groups:
+      npm:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+    groups:
+      actions:
+        patterns: ["*"]
