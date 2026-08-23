@@ -43,7 +43,11 @@ jobs:
       - name: Check package contents
         run: npm pack --dry-run
 
-  lint:
+  # Was named `lint` -- but its only step runs `npm run build` (vite build +
+  # tsc), so the fleet audit flagged it as a lint job that does not lint.
+  # Renamed to what it actually is; this package has no linter configured, and
+  # pretending otherwise is worse than saying so.
+  typecheck:
     runs-on: ubuntu-latest
 
     steps:
@@ -60,13 +64,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run TypeScript check
+      - name: Type check via build
         run: npm run build
 
+  # Release-readiness signal on main. It used to re-run tests, the build and
+  # the Storybook build -- all of which `test` and `typecheck` in the same
+  # run had just done -- so its only unique contribution was `npm pack
+  # --dry-run` (the test job's pack check runs on the matrix; this one is the
+  # post-merge signal on main). It now runs exactly that.
   publish-check:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test, lint]
+    needs: [test, typecheck]
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -82,11 +91,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
-
-      - name: Run release check
-        run: npm run build && npm run build-storybook && npm pack --dry-run
+      - name: Check package contents
+        run: npm run build && npm pack --dry-run
 
   supply-chain:
     name: Supply chain
@@ -99,56 +105,28 @@ jobs:
 
   pr_validation:
     name: PR Validation
-    # Aggregate gate. Every Crossroads repository exposes one required status
-    # check under this exact name, so the jobs beneath it can be renamed, split
-    # or extended without touching the branch protection rule. GitHub stores a
-    # required check as plain text rather than as a reference to a job, so a
-    # rename made without updating the rule fails silently rather than loudly.
-    #
-    # `needs` names the jobs, not the matrix legs. The `test` legs report as
-    # "test (20.x)" and "test (22.x)", so requiring them individually would pin
-    # a Node version into branch protection and silently exempt any version
-    # added to the matrix later. Depending on the job aggregates every leg.
-    #
-    # `publish-check` is deliberately excluded: its own `if` restricts it to
-    # pushes to main, so on a pull request it is skipped, and a gate that
-    # required it would fail every pull request on a dependency that was never
-    # meant to run there.
-    #
-    # `!cancelled()` rather than `always()`. The concurrency group above cancels
-    # the in-progress run on every new push, so a superseded run's jobs report
-    # `cancelled` -- and an `always()` gate would turn that into a hard failure,
-    # leaving a red check on a commit nobody is waiting on while the
-    # replacement run goes green beside it. A superseded run should render no
-    # verdict. A job cancelled on its own while its run stays live is different:
-    # `cancelled()` is false there, so the gate still runs and the check below
-    # still refuses to pass a job that did not finish.
+    # Aggregate gate; the name is the fleet's required check and never
+    # changes. Logic lives in the control plane's composite action -- a
+    # composite, not a reusable workflow, precisely so this job's check
+    # context stays intact. `publish-check` stays out of `needs`: its own
+    # `if` restricts it to pushes to main, and a gate requiring it would fail
+    # every pull request on a dependency that was never meant to run there.
     if: ${{ !cancelled() }}
-    needs: [test, lint, supply-chain]
+    needs: [test, typecheck, supply-chain]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
-      # No checkout step: this job reads job results, not the repository.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Check required results
-        env:
-          TEST_RESULT: ${{ needs.test.result }}
-          LINT_RESULT: ${{ needs.lint.result }}
-          SUPPLY_CHAIN_RESULT: ${{ needs.supply-chain.result }}
-        run: |
-          echo "Tests:        $TEST_RESULT"
-          echo "Lint:         $LINT_RESULT"
-          echo "Supply chain: $SUPPLY_CHAIN_RESULT"
-          status=0
-          for pair in "Tests:$TEST_RESULT" "Lint:$LINT_RESULT" "Supply chain:$SUPPLY_CHAIN_RESULT"; do
-            name="${pair%%:*}"
-            result="${pair#*:}"
-            [ "$result" = "success" ] && continue
-            if [ "$result" = "cancelled" ]; then
-              echo "$name was cancelled while this run stayed live; a required job that did not finish cannot pass the gate." >&2
-            else
-              echo "$name did not pass ($result)." >&2
-            fi
-            status=1
-          done
-          exit "$status"
+        uses: tsviser/crossroads-ci/actions/gate@4b914a65343415028de088fa4e380aa91216c36b # main
+        with:
+          results: |
+            {
+              "Tests": "${{ needs.test.result }}",
+              "Typecheck": "${{ needs.typecheck.result }}",
+              "Supply chain": "${{ needs.supply-chain.result }}"
+            }
