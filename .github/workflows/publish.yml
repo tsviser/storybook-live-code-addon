@@ -1,34 +1,97 @@
+# The only path that publishes this package.
+#
+# There used to be two. `release.yml` fired on a `v*.*.*` tag and authenticated
+# with `secrets.NPM_TOKEN`, which is not configured in this repository -- so
+# every tagged release failed, and it would have published without provenance
+# had it worked. This file was dispatch-only. Which path shipped a given version
+# therefore decided what had been verified before it went out.
+#
+# One trigger, one set of checks, one publish command.
 name: Publish
 
 on:
+  push:
+    tags:
+      - "v*.*.*"
+  # Kept as an escape hatch for republishing an existing tag after an
+  # infrastructure failure. It publishes whatever is on the checked-out ref, so
+  # the version guard below still applies.
   workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
+  # npm trusted publishing. The registry exchanges this workflow's OIDC token
+  # for publish rights, so no long-lived npm token exists in this repository.
   id-token: write
+
+env:
+  # Provenance attestation over trusted publishing needs npm 11.5.1 or newer.
+  # Pinned rather than inherited from the Node image so a Node bump cannot
+  # silently drop provenance from a release.
+  PUBLISH_NPM_VERSION: 11.6.0
 
 jobs:
   publish:
+    name: Publish to npm
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Deliberately no `environment:`. npm trusted publishing matches the OIDC
+    # claim this workflow presents, and that claim includes the environment
+    # name. Adding one here changes the claim and the registry stops
+    # recognising the publisher -- a change to make on npm first, if at all.
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
           cache: npm
 
+      # A tag is a movable pointer. Without this, retagging `v0.3.3` at an
+      # unrelated commit publishes that commit as 0.3.3, and nothing in the
+      # pipeline objects. Phase 04 of the CI roadmap adds a tag ruleset so the
+      # tag cannot move at all; this guard is the cheap half of the same idea
+      # and stays useful regardless.
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#v}"
+          pkg_version="$(node -p "require('./package.json').version")"
+          echo "tag: $tag_version   package.json: $pkg_version"
+          if [ "$tag_version" != "$pkg_version" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json ($pkg_version)." >&2
+            exit 1
+          fi
+
       - name: Install dependencies
         run: npm ci
 
+      # The same checks the pull-request gate runs, in the same order. A release
+      # must not be verified more weakly than a pull request was.
       - name: Test
         run: npm test
 
-      - name: Build
+      - name: Build package
         run: npm run build
 
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      - name: Check package contents
+        run: npm pack --dry-run
+
+      - name: Select provenance-capable npm
+        run: npm install --global npm@${PUBLISH_NPM_VERSION} --ignore-scripts --no-audit --no-fund
+
       - name: Publish to npm
-        run: npm publish --access public
+        run: npm publish --provenance --access public
