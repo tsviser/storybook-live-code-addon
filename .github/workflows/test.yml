@@ -91,7 +91,7 @@ jobs:
   supply-chain:
     name: Supply chain
     # Phase 02: the fleet's shared supply-chain checks from the control plane.
-    uses: tsviser/crossroads-ci/.github/workflows/_supply-chain.yml@main
+    uses: tsviser/crossroads-ci/.github/workflows/_supply-chain.yml@20ad5f774678414452201695c5f27017fa1f94f1 # main
     permissions:
       contents: read
     with:
