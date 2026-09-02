@@ -33,13 +33,13 @@
   ],
   "author": "tsvidaphna",
   "license": "MIT",
-  "homepage": "https://github.com/tsviser/storybook-live-code-addon#readme",
+  "homepage": "https://github.com/crossroads-hq/storybook-live-code-addon#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tsviser/storybook-live-code-addon.git"
+    "url": "git+https://github.com/crossroads-hq/storybook-live-code-addon.git"
   },
   "bugs": {
-    "url": "https://github.com/tsviser/storybook-live-code-addon/issues"
+    "url": "https://github.com/crossroads-hq/storybook-live-code-addon/issues"
   },
   "files": [
     "dist",

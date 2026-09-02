@@ -5,6 +5,10 @@ on:
     branches: [main, next, develop]
   pull_request:
     branches: [main, next, develop]
+  # Merge-queue entries. Without this trigger a queued PR waits for the
+  # required PR Validation check that never starts, and times out of the
+  # queue. A queue entry runs the same suite as a push.
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -97,7 +101,7 @@ jobs:
   supply-chain:
     name: Supply chain
     # Phase 02: the fleet's shared supply-chain checks from the control plane.
-    uses: tsviser/crossroads-ci/.github/workflows/_supply-chain.yml@20ad5f774678414452201695c5f27017fa1f94f1 # main
+    uses: crossroads-hq/crossroads-ci/.github/workflows/_supply-chain.yml@b6d6ff2d2b709a42fb174c21f80549a95ddb1d56 # main
     permissions:
       contents: read
     with:
@@ -122,7 +126,7 @@ jobs:
           persist-credentials: false
 
       - name: Check required results
-        uses: tsviser/crossroads-ci/actions/gate@4b914a65343415028de088fa4e380aa91216c36b # main
+        uses: crossroads-hq/crossroads-ci/actions/gate@b6d6ff2d2b709a42fb174c21f80549a95ddb1d56 # main
         with:
           results: |
             {
